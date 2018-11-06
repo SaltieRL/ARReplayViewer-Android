@@ -327,6 +327,9 @@
  <Reference Include="UnityEditor.WindowsStandalone.Extensions">
  <HintPath>E:/Programs/Unity/Editor/Data/PlaybackEngines/windowsstandalonesupport/UnityEditor.WindowsStandalone.Extensions.dll</HintPath>
  </Reference>
+ <Reference Include="zxing.unity">
+ <HintPath>D:/Users/Matt/Documents/RL Replays/Assets/zxing.unity.dll</HintPath>
+ </Reference>
  <Reference Include="Google.IOSResolver_v1.2.88.0">
  <HintPath>D:/Users/Matt/Documents/RL Replays/Assets/PlayServicesResolver/Editor/Google.IOSResolver_v1.2.88.0.dll</HintPath>
  </Reference>
@@ -356,9 +359,6 @@
  </Reference>
  <Reference Include="UnityEngine.StandardEvents">
  <HintPath>C:/Users/Matt/AppData/Local/Unity/cache/packages/packages.unity.com/com.unity.standardevents@1.0.13/UnityEngine.StandardEvents.dll</HintPath>
- </Reference>
- <Reference Include="zxing.unity">
- <HintPath>D:/Users/Matt/Documents/RL Replays/Assets/zxing.unity.dll</HintPath>
  </Reference>
  <Reference Include="UnityEditor.iOS.Extensions.Xcode">
  <HintPath>E:/Programs/Unity/Editor/Data/PlaybackEngines/iOSSupport/UnityEditor.iOS.Extensions.Xcode.dll</HintPath>

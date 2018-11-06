@@ -22,6 +22,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using UnityEngine.SceneManagement;
 
 namespace GoogleARCore.Examples.HelloAR
 {
@@ -102,6 +103,7 @@ namespace GoogleARCore.Examples.HelloAR
         private int currentFrame = 0;
         private List<GameObject> cars = new List<GameObject>();
         private List<GameObject> names = new List<GameObject>();
+        private float hSliderValue = 1000f;
         public void Start()
         {
             BASE_URL = StaticReplayScript.URL;
@@ -264,6 +266,36 @@ namespace GoogleARCore.Examples.HelloAR
                 {
                     currentFrame += 1;
                 }
+            }
+        }
+
+
+
+        public void OnGUI()
+        {
+            var zoomOut = GUI.Button(new Rect(25 + 150, 25, 30, 30), "-");
+            var zoomIn = GUI.Button(new Rect(25 + 150 + 50, 25, 30, 30), "+");
+            if (zoomOut)
+            {
+                scaleFactor += 100;
+            }
+            else if (zoomIn)
+            {
+                scaleFactor -= 100;
+            }
+
+            if (gameData != null)
+            {
+                currentTime = GUI.HorizontalSlider(new Rect(25 + 150, 35, 200, 30), currentTime, (float)gameData.frames[0][2], (float) gameData.frames[gameData.frames.Count - 1][2]);
+               
+            }
+
+
+            // Button
+            var back = GUI.Button(new Rect(25, 25, 100, 30), "Back to QR");
+            if (back)
+            {
+                SceneManager.LoadScene("QRCode");
             }
         }
 
