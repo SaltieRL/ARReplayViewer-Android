@@ -35,13 +35,16 @@ public class QRCodeScript : MonoBehaviour {
         {
             GUI.Label(screenRect, text);
         }
-        if (frameCounter == 30)
+        if (frameCounter == 60)
         {
             frameCounter = 0;
             // do the reading — you might want to attempt to read less often than you draw on the screen for performance sake
             try
             {
                 IBarcodeReader barcodeReader = new BarcodeReader();
+                //barcodeReader.Options.PossibleFormats.Clear();
+                //barcodeReader.Options.PossibleFormats.Add(BarcodeFormat.QR_CODE);
+                barcodeReader.Options.TryHarder = true;
                 // decode the current frame
                 var result = barcodeReader.Decode(camTexture.GetPixels32(),
                     camTexture.width, camTexture.height);
@@ -50,7 +53,7 @@ public class QRCodeScript : MonoBehaviour {
                     Debug.Log("DECODED TEXT FROM QR: " + result.Text);
                     text = result.Text;
                     StaticReplayScript.URL = result.Text;
-                    SceneManager.LoadScene("HelloAR");
+                    SceneManager.LoadScene("LoadData");
                     //Handles.Label(gameObject.transform.position, result.Text);
                 }
             }

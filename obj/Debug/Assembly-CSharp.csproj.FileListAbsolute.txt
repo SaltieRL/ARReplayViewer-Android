@@ -167,3 +167,4 @@ D:\Users\Matt\Documents\RL Replays\Temp\bin\Debug\UnityEngine.ClusterRendererMod
 D:\Users\Matt\Documents\RL Replays\obj\Debug\Assembly-CSharp.csprojResolveAssemblyReference.cache
 D:\Users\Matt\Documents\RL Replays\obj\Debug\Assembly-CSharp.dll
 D:\Users\Matt\Documents\RL Replays\obj\Debug\Assembly-CSharp.pdb
+D:\Users\Matt\Documents\RL Replays\Temp\bin\Debug\zxing.unity.dll

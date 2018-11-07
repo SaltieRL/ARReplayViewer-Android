@@ -22,6 +22,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using UnityEditor;
 using UnityEngine.SceneManagement;
 
 namespace GoogleARCore.Examples.HelloAR
@@ -98,42 +99,64 @@ namespace GoogleARCore.Examples.HelloAR
         // Instance objects
         private GameObject ballObject;
         private GameObject fieldObject;
-        private RootObject gameData;
+        private GameObject rootObject;
         private float currentTime = 0f;
         private int currentFrame = 0;
         private List<GameObject> cars = new List<GameObject>();
         private List<GameObject> names = new List<GameObject>();
         private float hSliderValue = 1000f;
-        public void Start()
+        private float localScale = 15f;
+
+
+        private string dataMsg;
+        private string protoMsg;
+
+        private void Spawn(Vector3 position, Quaternion rotation, Transform parent)
         {
-            BASE_URL = StaticReplayScript.URL;
-            WWW req = new WWW(BASE_URL);
-            StartCoroutine("GetData", req);
-            //dynamic dyn = JsonUtility.FromJson(res);
+            var gameData = StaticReplayScript.gameData;
+            // Choose the Andy model for the Trackable that got hit.
+            // Instantiate Andy model at the hit pose.
+            fieldObject = Instantiate(this.field, position, rotation);
 
-        }
+            // Compensate for the hitPose rotation facing away from the raycast (i.e. camera).
+            fieldObject.transform.Rotate(0, k_ModelRotation, 0, Space.Self);
 
+            // Create an anchor to allow ARCore to track the hitpoint as understanding of the physical
+            // world evolves.
 
-        IEnumerator GetData(WWW req)
-        {
-
-            yield return req;
-            if (req.error == null)
+            rootObject = new GameObject("Field/Car Anchor");
+            // Make Andy model a child of the anchor.
+            rootObject.transform.parent = parent;
+            rootObject.transform.localPosition = new Vector3(0f, 0f, 0f);
+            rootObject.transform.localScale = new Vector3(1 / scaleFactor, 1 / scaleFactor, 1 / scaleFactor);
+            fieldObject.transform.parent = rootObject.transform;
+            fieldObject.transform.localPosition = new Vector3(0f, -10f, 0f);
+            fieldObject.transform.localScale = new Vector3(63 * 1000 / scaleFactor, 63 * 1000 / scaleFactor, 63 * 1000 / scaleFactor);
+            fieldObject.transform.localRotation = Quaternion.Euler(0f, -90f, 0f);
+            for (int i = 0; i < gameData.players.Count; i++)
             {
-                string text = req.text;
-                Debug.Log(text.Substring(0, 100));
-                RootObject r = JsonConvert.DeserializeObject<RootObject>(text);
-                Debug.Log(r.id);
-                Debug.Log(r.colors[0]);
-                Debug.Log(r.frames[0][0]);
-                Debug.Log(r.ball[0][0]);
-                Debug.Log(r.players[0][0][0]);
-                this.gameData = r;
+                float x = (float)(double)gameData.players[i][0][0] / localScale;
+                float y = (float)(double)gameData.players[i][0][2] / localScale;
+                float z = (float)(double)gameData.players[i][0][1] / localScale;
+                var car = Instantiate(prefab, new Vector3(0f, 0f, 0f), Quaternion.identity);
+                car.transform.parent = rootObject.transform;
+                car.transform.localPosition = new Vector3(x, y, z);
+                //car.transform.localScale = new Vector3(120 * 1000 / scaleFactor, 120 * 1000 / scaleFactor, 120 * 1000 / scaleFactor);
+                car.GetComponent<Renderer>().material = gameData.colors[i] == 0 ? blueCar : orangeCar;
+                cars.Add(car);
+
+
+                var name = Instantiate(namePrefab, new Vector3(0f, 0f, 0f), Quaternion.identity);
+                name.GetComponent<TextMesh>().text = gameData.names[i];
+                name.transform.parent = rootObject.transform;
+                name.transform.localPosition = new Vector3(x, y + 1.0f, z);
+                names.Add(name); // needed so we can look at camera all the time
             }
-            else
-            {
-                Debug.Log(req.error);
-            }
+            ballObject = Instantiate(ball, new Vector3(0f, 0f, 0f), Quaternion.identity);
+            ballObject.transform.parent = rootObject.transform;
+            ballObject.transform.localPosition = new Vector3(0f, 0f, 0f);
+            ballObject.transform.localScale = new Vector3(10 * 1000 / scaleFactor, 10 * 1000 / scaleFactor, 10 * 1000 / scaleFactor);
+            currentTime = (float)gameData.frames[0][2];
         }
 
         /// <summary>
@@ -142,7 +165,7 @@ namespace GoogleARCore.Examples.HelloAR
         public void Update()
         {
             _UpdateApplicationLifecycle();
-
+            var gameData = StaticReplayScript.gameData;
             // Hide snackbar when currently tracking at least one plane.
             Session.GetTrackables<DetectedPlane>(m_AllPlanes);
             bool showSearchingUI = true;
@@ -158,74 +181,52 @@ namespace GoogleARCore.Examples.HelloAR
             SearchingForPlaneUI.SetActive(showSearchingUI);
             SearchingForPlaneUI.GetComponentInChildren<UnityEngine.UI.Text>().text = StaticReplayScript.URL;
 
+            bool testing = false;
             // If the player has not touched the screen, we are done with this update.
             if (fieldObject == null)
             {
-                Touch touch;
-                if (Input.touchCount < 1 || (touch = Input.GetTouch(0)).phase != TouchPhase.Began)
+                if (testing && gameData != null)
                 {
-                    return;
+                    GameObject empty = new GameObject("Empty");
+                    Spawn(new Vector3(0f, 0f, 0f), Quaternion.identity, empty.transform);
+                    GameObject device = GameObject.Find("ARCore Device");
+                    scaleFactor = 100000f;
+                    device.transform.position = new Vector3(1000000f, 1000000f, 1000000f);
+                    device.transform.LookAt(empty.transform);
                 }
-
-                // Raycast against the location the player touched to search for planes.
-                TrackableHit hit;
-                TrackableHitFlags raycastFilter = TrackableHitFlags.PlaneWithinPolygon |
-                                                  TrackableHitFlags.FeaturePointWithSurfaceNormal;
-
-                if ((fieldObject == null) && (Frame.Raycast(touch.position.x, touch.position.y, raycastFilter, out hit)))
+                else
                 {
-                    // Use hit pose and camera pose to check if hittest is from the
-                    // back of the plane, if it is, no need to create the anchor.
-                    if ((hit.Trackable is DetectedPlane) &&
-                        Vector3.Dot(FirstPersonCamera.transform.position - hit.Pose.position,
-                            hit.Pose.rotation*Vector3.up) < 0)
+
+                    Touch touch;
+                    if (Input.touchCount < 1 || (touch = Input.GetTouch(0)).phase != TouchPhase.Began)
                     {
-                        Debug.Log("Hit at back of the current DetectedPlane");
+                        return;
                     }
-                    else
+
+                    // Raycast against the location the player touched to search for planes.
+                    TrackableHit hit;
+                    TrackableHitFlags raycastFilter = TrackableHitFlags.PlaneWithinPolygon |
+                                                      TrackableHitFlags.FeaturePointWithSurfaceNormal;
+
+                    if ((fieldObject == null) && (Frame.Raycast(touch.position.x, touch.position.y, raycastFilter, out hit)))
                     {
-                        // Choose the Andy model for the Trackable that got hit.
-
-                        // Instantiate Andy model at the hit pose.
-                        fieldObject = Instantiate(this.field, hit.Pose.position, hit.Pose.rotation);
-
-                        // Compensate for the hitPose rotation facing away from the raycast (i.e. camera).
-                        fieldObject.transform.Rotate(0, k_ModelRotation, 0, Space.Self);
-
-                        // Create an anchor to allow ARCore to track the hitpoint as understanding of the physical
-                        // world evolves.
-                        var anchor = hit.Trackable.CreateAnchor(hit.Pose);
-                        var emptyGameObject = new GameObject("Field/Car Anchor");
-                        // Make Andy model a child of the anchor.
-                        emptyGameObject.transform.parent = anchor.transform;
-                        fieldObject.transform.parent = emptyGameObject.transform;
-
-                        fieldObject.transform.localScale = new Vector3(100/scaleFactor, 100 / scaleFactor, 100 / scaleFactor);
-
-                        for (int i = 0; i < gameData.players.Count; i++)
+                        // Use hit pose and camera pose to check if hittest is from the
+                        // back of the plane, if it is, no need to create the anchor.
+                        if ((hit.Trackable is DetectedPlane) &&
+                            Vector3.Dot(FirstPersonCamera.transform.position - hit.Pose.position,
+                                hit.Pose.rotation * Vector3.up) < 0)
                         {
-                            float x = (float) (double) gameData.players[i][0][0]/scaleFactor;
-                            float y = (float) (double) gameData.players[i][0][2]/scaleFactor;
-                            float z = (float) (double) gameData.players[i][0][1]/scaleFactor;
-                            var car = Instantiate(prefab, new Vector3(0f, 0f, 0f), Quaternion.identity);
-                            car.transform.parent = emptyGameObject.transform;
-                            car.transform.localPosition = new Vector3(x, y, z);
-                            car.GetComponent<Renderer>().material = gameData.colors[i] == 0 ? blueCar : orangeCar;
-                            cars.Add(car);
-
-
-                            var name = Instantiate(namePrefab, new Vector3(0f, 0f, 0f), Quaternion.identity);
-                            name.GetComponent<TextMesh>().text = gameData.names[i];
-                            name.transform.parent = fieldObject.transform;
-                            name.transform.localPosition = new Vector3(x, y + 1.0f, z);
-                            names.Add(name); // needed so we can look at camera all the time
+                            Debug.Log("Hit at back of the current DetectedPlane");
                         }
-                        ballObject = Instantiate(ball, new Vector3(0f, 0f, 0f), Quaternion.identity);
-                        ballObject.transform.parent = fieldObject.transform;
-                        ballObject.transform.localPosition = new Vector3(0f, 0f, 0f);
-                        currentTime = (float) gameData.frames[0][2];
+                        else
+                        {
+                            var anchor = hit.Trackable.CreateAnchor(hit.Pose);
+                            Spawn(hit.Pose.position, hit.Pose.rotation, anchor.transform);
+                            
+                        }
                     }
                 }
+
             }
             if (fieldObject != null)
             {
@@ -237,23 +238,28 @@ namespace GoogleARCore.Examples.HelloAR
                 for (int i = 0; i < cars.Count; i++)
                 {
                     var frameData = gameData.players[i][currentFrame];
-                    float x = (float)(double)frameData[0] / scaleFactor;
-                    float y = (float)(double)frameData[2] / scaleFactor;
-                    float z = (float)(double)frameData[1] / scaleFactor;
+                    float x = (float) (double) frameData[0] / localScale;
+                    float y = (float) (double) frameData[2] / localScale;
+                    float z = (float) (double) frameData[1] / localScale;
 
                     var rotX = (double) frameData[3] * 180 / 3.14159265;
                     var rotY = (double) frameData[4] * 180 / 3.14159265;
                     var rotZ = (double) frameData[5] * 180 / 3.14159265;
 
+                    //var rotation = Quaternion.AngleAxis((float) rotY, Vector3.up) * // yaw
+                      //  Quaternion.AngleAxis((float) rotX, Vector3.right) *
+                        //Quaternion.AngleAxis((float) rotZ, Vector3.forward);
                     cars[i].transform.localPosition = new Vector3(x, y, z);
-                    cars[i].transform.localEulerAngles = new Vector3((float) rotX, (float) rotY, (float) rotZ);
+                    cars[i].transform.localEulerAngles = new Vector3((float) rotZ, (float) rotY, (float) rotX);
+                    //cars[i].transform.localRotation = rotation;
                     names[i].transform.localPosition = new Vector3(x, y + 0.5f, z);
                     names[i].transform.LookAt(FirstPersonCamera.transform);
                     names[i].transform.Rotate(Vector3.up - new Vector3(0, 180, 0));
                 }
-                float ballx = (float)gameData.ball[currentFrame][0] / scaleFactor;
-                float bally = (float)gameData.ball[currentFrame][2] / scaleFactor;
-                float ballz = (float)gameData.ball[currentFrame][1] / scaleFactor;
+                
+                float ballx = (float)gameData.ball[currentFrame][0] / localScale;
+                float bally = (float)gameData.ball[currentFrame][2] / localScale;
+                float ballz = (float)gameData.ball[currentFrame][1] / localScale;
                 ballObject.transform.localPosition = new Vector3(ballx, bally, ballz);
 
                 // Time management
@@ -269,34 +275,106 @@ namespace GoogleARCore.Examples.HelloAR
             }
         }
 
-
+        void DrawQuad(Rect position, Color color)
+        {
+            Texture2D texture = new Texture2D(1, 1);
+            texture.SetPixel(0, 0, color);
+            texture.Apply();
+            GUI.skin.box.normal.background = texture;
+            GUI.Box(position, GUIContent.none);
+        }
 
         public void OnGUI()
         {
-            var zoomOut = GUI.Button(new Rect(25 + 150, 25, 30, 30), "-");
-            var zoomIn = GUI.Button(new Rect(25 + 150 + 50, 25, 30, 30), "+");
+            var width = Screen.width;
+            var zoomOut = GUI.Button(new Rect(width * 2/10, 25, width / 25, width / 25), "-");
+            var zoomIn = GUI.Button(new Rect(width * 3 / 10, 25, width / 25, width / 25), "+");
             if (zoomOut)
             {
                 scaleFactor += 100;
+                rootObject.transform.localScale = new Vector3(1 / scaleFactor, 1 / scaleFactor, 1 / scaleFactor);
             }
             else if (zoomIn)
             {
                 scaleFactor -= 100;
+                rootObject.transform.localScale = new Vector3(1 / scaleFactor, 1 / scaleFactor, 1 / scaleFactor);
             }
 
+
+            // Scoreboard
+            int offset = 100;
+            Color orange = new Color(1F, 0.64F, 0F);
+            var halfway = width/2;
+            GUIStyle timeStyle = new GUIStyle();
+            timeStyle.fontSize = 30;
+            timeStyle.fontStyle = FontStyle.Bold;
+
+            timeStyle.normal.textColor = Color.gray;
+            timeStyle.alignment = TextAnchor.MiddleCenter;
+            int timeRemaining = 300;
+            if (StaticReplayScript.gameData != null)
+            {
+                timeRemaining = (int)StaticReplayScript.gameData.frames[currentFrame][1];
+            }
+            //int timeRemaining = 175;
+            int minRemaining = timeRemaining/60;
+            GUI.Label(new Rect(halfway, 35, 50, 50), String.Format("{0}:{1:D2}", minRemaining, timeRemaining % (minRemaining * 60)), timeStyle);
+            for (int i = 0; i < 2; i++)
+            {
+                Color teamColor = (i == 0) ? Color.blue : (orange);
+
+                var offsetX = (float)width / 2 - offset + (i * offset * 2);
+                Rect position = new Rect(offsetX, 35, 50, 50);
+                DrawQuad(position, teamColor);
+
+
+                GUIStyle style = new GUIStyle();
+                ///style.font = new Font("Liberation Sans");
+                style.fontSize = 30;
+                style.fontStyle = FontStyle.Bold;
+                
+                style.normal.textColor = Color.white;
+                style.alignment = TextAnchor.MiddleCenter;
+                
+                GUI.Label(position, i.ToString(), style);
+                //Color oldColor = GUI.backgroundColor;
+                //GUI.backgroundColor = (i == 0) ? Color.blue : Color.red*Color.yellow;
+                //GUI.backgroundColor = oldColor;
+
+
+
+            }
+            RootObject gameData = StaticReplayScript.gameData;
             if (gameData != null)
             {
-                currentTime = GUI.HorizontalSlider(new Rect(25 + 150, 35, 200, 30), currentTime, (float)gameData.frames[0][2], (float) gameData.frames[gameData.frames.Count - 1][2]);
-               
+                currentTime = GUI.HorizontalSlider(new Rect(250 + 150, 35, 200, 30), currentTime, (float)gameData.frames[0][2], (float) gameData.frames[gameData.frames.Count - 1][2]);
+
             }
 
 
             // Button
-            var back = GUI.Button(new Rect(25, 25, 100, 30), "Back to QR");
+            var back = GUI.Button(new Rect(25, 25, width / 10, width / 25), "Back to Menu");
             if (back)
             {
-                SceneManager.LoadScene("QRCode");
+                SceneManager.LoadScene("Menu");
             }
+
+
+            if (dataMsg != null)
+            {
+                var style = new GUIStyle();
+                style.fontSize = 20;
+                style.fontStyle = FontStyle.Bold;
+                GUI.Label(new Rect(0, width/10, width / 5, width / 10), dataMsg, style);
+            }
+            if (protoMsg != null)
+            {
+                var style = new GUIStyle();
+                style.fontSize = 20;
+                style.fontStyle = FontStyle.Bold;
+                GUI.Label(new Rect(0, 0, width / 5, width / 10), protoMsg, style);
+            }
+
         }
 
         /// <summary>
@@ -370,15 +448,4 @@ namespace GoogleARCore.Examples.HelloAR
             }
         }
     }
-}
-
-[System.Serializable]
-public class RootObject
-{
-    public List<List<double>> ball;
-    public List<List<List<object>>> players;
-    public List<int> colors;
-    public List<string> names;
-    public List<List<double>> frames;
-    public string id;
 }
