@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.44657874, g: 0.49641258, b: 0.5748172, a: 1}
+  m_IndirectSpecularColor: {r: 0.44657898, g: 0.4964133, b: 0.5748178, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -277,7 +277,7 @@ MonoBehaviour:
   AndyPointPrefab: {fileID: 1190091649889860, guid: b27e8d7fe70df464188ea5dcf2af0bb3,
     type: 2}
   SearchingForPlaneUI: {fileID: 0}
-  prefab: {fileID: 1300464243206662, guid: 7213eded9c0f57c4d923e0567f051aa3, type: 2}
+  prefab: {fileID: 1996245458792640, guid: 5b8b93680df36d24297bbcd2cf2395c0, type: 2}
   field: {fileID: 1622367642563872, guid: 6d6fcfec73dec3e478b7d834e44057d5, type: 2}
   ball: {fileID: 1696128692082718, guid: 33876e2cf22a5ef44b587d8584f418c5, type: 2}
   namePrefab: {fileID: 1093890370552692, guid: 92931170967238b4380ff3a2aecdffa1, type: 2}

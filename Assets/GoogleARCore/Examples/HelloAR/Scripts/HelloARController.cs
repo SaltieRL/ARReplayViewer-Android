@@ -256,10 +256,19 @@ namespace GoogleARCore.Examples.HelloAR
                     float x = (float) (double) frameData[0] / localScale;
                     float y = (float) (double) frameData[2] / localScale;
                     float z = (float) (double) frameData[1] / localScale;
+                    
+                    var PI = (double)3.14159265;
 
-                    var rotX = (double) frameData[3] * 180 / 3.14159265;
-                    var rotY = (double) frameData[4] * 180 / 3.14159265;
-                    var rotZ = (double) frameData[5] * 180 / 3.14159265;
+                    var xOffset = (double)0;
+                    var yOffset = (double)-0.25;
+                    var zOffset = (double)0;
+                    var xCoeff = (double)1;
+                    var yCoeff = (double)-1;
+                    var zCoeff = (double)-1;
+
+                    var rotX = ((double)frameData[3] / (2 * PI) + xOffset) * xCoeff * 360;  // pitch
+                    var rotY = ((double)frameData[4] / (2 * PI) + yOffset) * yCoeff * 360;  // yaw
+                    var rotZ = ((double)frameData[5] / (2 * PI) + zOffset) * zCoeff * 360;  // roll
 
                     var rotation = Quaternion.AngleAxis((float)rotY, Vector3.up)* // yaw
                                    Quaternion.AngleAxis((float)rotX, Vector3.right) *
