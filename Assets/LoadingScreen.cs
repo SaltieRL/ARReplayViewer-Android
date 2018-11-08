@@ -9,6 +9,8 @@ public class LoadingScreen : MonoBehaviour {
     private string dataMsg;
     private string protoMsg;
     private string replayID ;
+
+    public string SceneToLoad;
     public void Start()
     {
         var url = StaticReplayScript.URL;
@@ -38,9 +40,9 @@ public class LoadingScreen : MonoBehaviour {
             Debug.Log(text.Substring(0, 100));
             Proto r = JsonConvert.DeserializeObject<Proto>(text);
             StaticReplayScript.proto = r;
-            if (StaticReplayScript.gameData != null)
+            if (StaticReplayScript.gameData != null && SceneToLoad != "" && SceneToLoad != null)
             {
-                SceneManager.LoadScene("HelloAR");
+                SceneManager.LoadScene(SceneToLoad);
             }
         }
         else

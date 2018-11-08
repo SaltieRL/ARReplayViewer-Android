@@ -111,6 +111,8 @@ namespace GoogleARCore.Examples.HelloAR
         private string dataMsg;
         private string protoMsg;
 
+
+        private bool testing = true;
         private void Spawn(Vector3 position, Quaternion rotation, Transform parent)
         {
             var gameData = StaticReplayScript.gameData;
@@ -143,6 +145,7 @@ namespace GoogleARCore.Examples.HelloAR
                 car.transform.localPosition = new Vector3(x, y, z);
                 //car.transform.localScale = new Vector3(120 * 1000 / scaleFactor, 120 * 1000 / scaleFactor, 120 * 1000 / scaleFactor);
                 car.GetComponent<Renderer>().material = gameData.colors[i] == 0 ? blueCar : orangeCar;
+                car.name = gameData.names[i];
                 cars.Add(car);
 
 
@@ -164,35 +167,44 @@ namespace GoogleARCore.Examples.HelloAR
         /// </summary>
         public void Update()
         {
-            _UpdateApplicationLifecycle();
-            var gameData = StaticReplayScript.gameData;
-            // Hide snackbar when currently tracking at least one plane.
-            Session.GetTrackables<DetectedPlane>(m_AllPlanes);
-            bool showSearchingUI = true;
-            for (int i = 0; i < m_AllPlanes.Count; i++)
+            if (!testing)
             {
-                if (m_AllPlanes[i].TrackingState == TrackingState.Tracking)
-                {
-                    showSearchingUI = false;
-                    break;
-                }
+
+                _UpdateApplicationLifecycle();
             }
+            var gameData = StaticReplayScript.gameData;
+            if (!testing)
+            {
+                // Hide snackbar when currently tracking at least one plane.
+                Session.GetTrackables<DetectedPlane>(m_AllPlanes);
+                bool showSearchingUI = true;
+                for (int i = 0; i < m_AllPlanes.Count; i++)
+                {
+                    if (m_AllPlanes[i].TrackingState == TrackingState.Tracking)
+                    {
+                        showSearchingUI = false;
+                        break;
+                    }
+                }
 
-            SearchingForPlaneUI.SetActive(showSearchingUI);
-            SearchingForPlaneUI.GetComponentInChildren<UnityEngine.UI.Text>().text = StaticReplayScript.URL;
-
-            bool testing = false;
+                SearchingForPlaneUI.SetActive(showSearchingUI);
+                SearchingForPlaneUI.GetComponentInChildren<UnityEngine.UI.Text>().text = StaticReplayScript.URL;
+            }
             // If the player has not touched the screen, we are done with this update.
             if (fieldObject == null)
             {
+                if (testing && gameData == null)
+                {
+                    //SceneManager.LoadScene("LoadData");
+                }
                 if (testing && gameData != null)
                 {
                     GameObject empty = new GameObject("Empty");
+                    scaleFactor = 1000f;
                     Spawn(new Vector3(0f, 0f, 0f), Quaternion.identity, empty.transform);
-                    GameObject device = GameObject.Find("ARCore Device");
-                    scaleFactor = 100000f;
-                    device.transform.position = new Vector3(1000000f, 1000000f, 1000000f);
-                    device.transform.LookAt(empty.transform);
+                    
+                    FirstPersonCamera.transform.position = new Vector3(0.5f, 0.5f, 0.5f);
+                    FirstPersonCamera.transform.LookAt(empty.transform);
                 }
                 else
                 {
@@ -230,10 +242,13 @@ namespace GoogleARCore.Examples.HelloAR
             }
             if (fieldObject != null)
             {
-                if (planeGenerator.GetComponent<DetectedPlaneGenerator>().RendererEnabled)
+                if (!testing)
                 {
-                    planeGenerator.GetComponent<DetectedPlaneGenerator>().RendererEnabled = false;
-                    planeGenerator.GetComponent<DetectedPlaneGenerator>().DestroyPlanes();
+                    if (planeGenerator.GetComponent<DetectedPlaneGenerator>().RendererEnabled)
+                    {
+                        planeGenerator.GetComponent<DetectedPlaneGenerator>().RendererEnabled = false;
+                        planeGenerator.GetComponent<DetectedPlaneGenerator>().DestroyPlanes();
+                    }
                 }
                 for (int i = 0; i < cars.Count; i++)
                 {
@@ -246,12 +261,12 @@ namespace GoogleARCore.Examples.HelloAR
                     var rotY = (double) frameData[4] * 180 / 3.14159265;
                     var rotZ = (double) frameData[5] * 180 / 3.14159265;
 
-                    //var rotation = Quaternion.AngleAxis((float) rotY, Vector3.up) * // yaw
-                      //  Quaternion.AngleAxis((float) rotX, Vector3.right) *
-                        //Quaternion.AngleAxis((float) rotZ, Vector3.forward);
+                    var rotation = Quaternion.AngleAxis((float)rotY, Vector3.up)* // yaw
+                                   Quaternion.AngleAxis((float)rotX, Vector3.right) *
+                                   Quaternion.AngleAxis((float) rotZ, Vector3.forward);
                     cars[i].transform.localPosition = new Vector3(x, y, z);
-                    cars[i].transform.localEulerAngles = new Vector3((float) rotZ, (float) rotY, (float) rotX);
-                    //cars[i].transform.localRotation = rotation;
+                    //cars[i].transform.localEulerAngles = new Vector3((float) rotZ, (float) rotY + 90, (float) rotX);
+                    cars[i].transform.localRotation = rotation;
                     names[i].transform.localPosition = new Vector3(x, y + 0.5f, z);
                     names[i].transform.LookAt(FirstPersonCamera.transform);
                     names[i].transform.Rotate(Vector3.up - new Vector3(0, 180, 0));
