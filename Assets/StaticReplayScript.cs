@@ -4,7 +4,7 @@ using UnityEngine;
 
 public static class StaticReplayScript
 {
-    public static string URL = "https://calculated.gg/api/replay/EACC3A5811E8E0AE177575BC6D034FCF/positions";
+    public static string URL = "https://calculated.gg/replays/7816726411E8CA7766EB7C839DB5566D";
 
     public static RootObject gameData;
     public static Proto proto;

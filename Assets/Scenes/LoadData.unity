@@ -202,6 +202,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eb4cfd0bd07c8644594406c1a9ca3779, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  SceneToLoad: HelloAR
 --- !u!1 &1670537209
 GameObject:
   m_ObjectHideFlags: 0

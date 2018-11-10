@@ -273,7 +273,8 @@ MonoBehaviour:
   AndyPointPrefab: {fileID: 1190091649889860, guid: b27e8d7fe70df464188ea5dcf2af0bb3,
     type: 2}
   SearchingForPlaneUI: {fileID: 1133631540}
-  prefab: {fileID: 1662330583938526, guid: e9da76b81b7671d42823ac38f022d8a1, type: 2}
+  prefab: {fileID: 1996245458792640, guid: 5b8b93680df36d24297bbcd2cf2395c0, type: 2}
+  boost: {fileID: 198631920856243186, guid: ccafa74804815a642a1948ef0fa3123d, type: 2}
   field: {fileID: 1622367642563872, guid: 6d6fcfec73dec3e478b7d834e44057d5, type: 2}
   ball: {fileID: 1696128692082718, guid: 33876e2cf22a5ef44b587d8584f418c5, type: 2}
   namePrefab: {fileID: 1093890370552692, guid: 92931170967238b4380ff3a2aecdffa1, type: 2}
@@ -281,6 +282,7 @@ MonoBehaviour:
   orangeCar: {fileID: 2100000, guid: 930ec488361a897478032696d5b19d8b, type: 2}
   blueCar: {fileID: 2100000, guid: ca59746023ec83d42a7d216a4d131eb3, type: 2}
   planeGenerator: {fileID: 2083512464}
+  testing: 0
 --- !u!20 &896679035 stripped
 Camera:
   m_CorrespondingSourceObject: {fileID: 20155940112608238, guid: c10877f7cd5764de18d46d7b777d1faa,
