@@ -89,6 +89,7 @@ namespace GoogleARCore.Examples.HelloAR
         // Settable parameters
         public GameObject prefab;
         public ParticleSystem boost;
+        public ParticleSystem goalExplosion;
         public GameObject field;
         public GameObject ball;
         public GameObject namePrefab;
@@ -102,6 +103,7 @@ namespace GoogleARCore.Examples.HelloAR
         private GameObject ballObject;
         private GameObject fieldObject;
         private GameObject rootObject;
+        private ParticleSystem goalExplosionObject;
         private float currentTime = 0f;
         private int currentFrame = 0;
         private List<GameObject> cars = new List<GameObject>();
@@ -195,6 +197,13 @@ namespace GoogleARCore.Examples.HelloAR
             ballObject.transform.parent = rootObject.transform;
             ballObject.transform.localPosition = new Vector3(0f, 0f, 0f);
             ballObject.transform.localScale = new Vector3(10 * 1000 / scaleFactor, 10 * 1000 / scaleFactor, 10 * 1000 / scaleFactor);
+
+            goalExplosionObject = Instantiate(goalExplosion, new Vector3(0f, 0f, 0f), Quaternion.identity);
+            goalExplosionObject.transform.parent = rootObject.transform;
+            goalExplosionObject.transform.localScale = new Vector3(4/scaleFactor, 4/scaleFactor, 4/scaleFactor);
+            goalExplosionObject.Stop();
+
+
             currentTime = (float)gameData.frames[0][2];
         }
 
@@ -289,7 +298,7 @@ namespace GoogleARCore.Examples.HelloAR
                 for (int i = 0; i < cars.Count; i++)
                 {
                     var frameData = gameData.players[i][currentFrame];
-                    float x = (float)(double)frameData[0] / localScale;
+                    float x = -(float)(double)frameData[0] / localScale;
                     float y = (float)(double)frameData[2] / localScale;
                     float z = (float)(double)frameData[1] / localScale;
 
@@ -299,8 +308,8 @@ namespace GoogleARCore.Examples.HelloAR
                     var yOffset = (double)-0.25;
                     var zOffset = (double)0;
                     var xCoeff = (double)1;
-                    var yCoeff = (double)-1;
-                    var zCoeff = (double)-1;
+                    var yCoeff = (double)1;
+                    var zCoeff = (double)1;
 
                     var rotX = ((double)frameData[3] / (2 * PI) + xOffset) * xCoeff * 360;  // pitch
                     var rotY = ((double)frameData[4] / (2 * PI) + yOffset) * yCoeff * 360;  // yaw
@@ -333,13 +342,26 @@ namespace GoogleARCore.Examples.HelloAR
                     names[i].transform.Rotate(Vector3.up - new Vector3(0, 180, 0));
                 }
 
-                float ballx = (float)gameData.ball[currentFrame][0] / localScale;
+                float ballx = -(float)gameData.ball[currentFrame][0] / localScale;
                 float bally = (float)gameData.ball[currentFrame][2] / localScale;
                 float ballz = (float)gameData.ball[currentFrame][1] / localScale;
                 ballObject.transform.localPosition = new Vector3(ballx, bally, ballz);
 
+                // Goal Explosions
+
+                foreach (Goal g in StaticReplayScript.proto.gameMetadata.goals)
+                {
+                    if (g.frameNumber == currentFrame)
+                    {
+                        goalExplosionObject.transform.localPosition = new Vector3(ballx, bally, ballz);
+                        goalExplosionObject.Play();
+                    }
+                }
+
+
+
                 // Time management
-                currentTime += Time.deltaTime;
+                    currentTime += Time.deltaTime;
 
                 var currentFrameTime = gameData.frames[currentFrame][2];
                 var nextFrameTime = gameData.frames[currentFrame + 1][2];
@@ -364,18 +386,7 @@ namespace GoogleARCore.Examples.HelloAR
         {
             var width = Screen.width;
             var height = Screen.height;
-            var zoomOut = GUI.Button(new Rect(width * 2 / 10, 25, width / 25, width / 25), "-");
-            var zoomIn = GUI.Button(new Rect(width * 3 / 10, 25, width / 25, width / 25), "+");
-            if (zoomOut)
-            {
-                scaleFactor += 100;
-                rootObject.transform.localScale = new Vector3(1 / scaleFactor, 1 / scaleFactor, 1 / scaleFactor);
-            }
-            else if (zoomIn)
-            {
-                scaleFactor -= 100;
-                rootObject.transform.localScale = new Vector3(1 / scaleFactor, 1 / scaleFactor, 1 / scaleFactor);
-            }
+            
 
 
             // Scoreboard
@@ -383,11 +394,15 @@ namespace GoogleARCore.Examples.HelloAR
             Color orange = new Color(1F, 0.64F, 0F);
             var halfway = width / 2;
             GUIStyle timeStyle = new GUIStyle();
-            timeStyle.fontSize = 30;
+            timeStyle.fontSize = 40;
             timeStyle.fontStyle = FontStyle.Bold;
 
             timeStyle.normal.textColor = Color.gray;
             timeStyle.alignment = TextAnchor.MiddleCenter;
+
+
+
+
             int timeRemaining = 300;
             if (StaticReplayScript.gameData != null)
             {
@@ -395,7 +410,16 @@ namespace GoogleARCore.Examples.HelloAR
             }
             //int timeRemaining = 175;
             int minRemaining = timeRemaining / 60;
-            GUI.Label(new Rect(halfway, 35, 50, 50), String.Format("{0}:{1:D2}", minRemaining, timeRemaining % (minRemaining * 60)), timeStyle);
+            int secondsRemaining;
+            if (minRemaining > 0)
+            {
+                secondsRemaining = timeRemaining%(minRemaining*60);
+            }
+            else
+            {
+                secondsRemaining = timeRemaining;
+            }
+            GUI.Label(new Rect(halfway, 35, 50, 50), String.Format("{0}:{1:D2}", minRemaining, secondsRemaining), timeStyle);
 
             
             var team0Score = 0;
@@ -429,7 +453,7 @@ namespace GoogleARCore.Examples.HelloAR
 
                 GUIStyle style = new GUIStyle();
                 ///style.font = new Font("Liberation Sans");
-                style.fontSize = 30;
+                style.fontSize = 40;
                 style.fontStyle = FontStyle.Bold;
 
                 style.normal.textColor = Color.white;
@@ -447,6 +471,12 @@ namespace GoogleARCore.Examples.HelloAR
             Proto proto = StaticReplayScript.proto;
             if (gameData != null && proto != null && fieldObject != null)
             {
+                // Slider Styling
+                GUIStyle thumbStyle = new GUIStyle(GUI.skin.horizontalSliderThumb);
+                GUIStyle sliderStyle = new GUIStyle(GUI.skin.horizontalSlider);
+                sliderStyle.padding = new RectOffset(width / 10, width / 10, width / 10, width / 10);
+
+
                 var logoWidth = width/60;
                 var nextFrame = (int)GUI.HorizontalSlider(new Rect(0, 19 / 20f * height, width, height / 20f), currentFrame, 0, gameData.frames.Count);
                 if (nextFrame != currentFrame)
@@ -473,12 +503,27 @@ namespace GoogleARCore.Examples.HelloAR
                 }
             }
 
+            GUIStyle buttonStyle = new GUIStyle(GUI.skin.button);
 
+            buttonStyle.fontSize = 30;
             // Button
-            var back = GUI.Button(new Rect(25, 25, width / 10, width / 25), "Back to Menu");
+            var back = GUI.Button(new Rect(25, 25, width / 10, width / 25), "Back to Menu", buttonStyle);
             if (back)
             {
                 SceneManager.LoadScene("Menu");
+            }
+
+            var zoomOut = GUI.Button(new Rect(width * 2 / 10, 25, width / 25, width / 25), "-", buttonStyle);
+            var zoomIn = GUI.Button(new Rect(width * 3 / 10, 25, width / 25, width / 25), "+", buttonStyle);
+            if (zoomOut)
+            {
+                scaleFactor += 100;
+                rootObject.transform.localScale = new Vector3(1 / scaleFactor, 1 / scaleFactor, 1 / scaleFactor);
+            }
+            else if (zoomIn)
+            {
+                scaleFactor -= 100;
+                rootObject.transform.localScale = new Vector3(1 / scaleFactor, 1 / scaleFactor, 1 / scaleFactor);
             }
 
 

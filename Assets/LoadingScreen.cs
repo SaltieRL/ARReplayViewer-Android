@@ -140,7 +140,7 @@ public class LoadingScreen : MonoBehaviour {
         style.fontSize = 40;
         if (StaticReplayScript.gameData == null || StaticReplayScript.proto == null)
         {
-            GUI.Label(new Rect(0, height*18/20f, width/2f, height*2/20f),
+            GUI.Label(new Rect(width * 1/4f, height*18/20f, width/2f, height*2/20f),
                 "Point towards a surface and click on the white grid when it appears.", style);
         }
 
